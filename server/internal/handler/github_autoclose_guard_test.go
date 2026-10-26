@@ -102,7 +102,7 @@ func TestWebhook_MergedPR_DoesNotCloseIntakeHeldIssue(t *testing.T) {
 	var withheld int
 	testPool.QueryRow(ctx, `
 		SELECT count(*) FROM comment
-		WHERE issue_id = $1 AND author_type = 'system' AND content LIKE '%autoclose-withheld:acme/widget#63%'`,
+		WHERE issue_id = $1 AND author_type = 'system' AND content LIKE '%autoclose-withheld:#63 %'`,
 		held.ID).Scan(&withheld)
 	if withheld != 1 {
 		t.Errorf("withheld comments on intake-held issue = %d, want 1", withheld)

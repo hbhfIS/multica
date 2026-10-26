@@ -45,10 +45,10 @@ func (h *Handler) autoCloseWithheldForIntake(ctx context.Context, issue db.Issue
 // auto-close was withheld, so the skipped transition is visible rather than
 // silent. System comments do not trigger the assignee, so Client Intake is not
 // woken up and nothing is relayed to the client. Deduplicated per PR so a
-// webhook redelivery does not stack comments.
-func (h *Handler) postAutoCloseWithheldComment(ctx context.Context, issue db.Issue, p *ghPullRequestPayload) {
-	ref := fmt.Sprintf("%s/%s#%d", p.Repository.Owner.Login, p.Repository.Name, p.PullRequest.Number)
-	marker := "<!-- autoclose-withheld:" + ref + " -->"
+// webhook redelivery does not stack comments. prRefs names the merged PRs
+// ("#12, #15").
+func (h *Handler) postAutoCloseWithheldComment(ctx context.Context, issue db.Issue, prRefs string) {
+	marker := "<!-- autoclose-withheld:" + prRefs + " -->"
 
 	var exists bool
 	if err := h.DB.QueryRow(ctx,
@@ -59,8 +59,8 @@ func (h *Handler) postAutoCloseWithheldComment(ctx context.Context, issue db.Iss
 	}
 
 	content := fmt.Sprintf(
-		"[%s](%s) merged and declared a closing keyword for this issue, but it was not moved to done because the issue is still with Client Intake. If the PR really delivers this request, close it by hand.\n%s",
-		ref, p.PullRequest.HTMLURL, marker,
+		"PR %s merged and declared a closing keyword for this issue, but the issue was not moved because it is still with Client Intake. If the PR really delivers this request, close it by hand.\n%s",
+		prRefs, marker,
 	)
 	created, err := h.Queries.CreateComment(ctx, db.CreateCommentParams{
 		ID:          dbid.NewV7(),

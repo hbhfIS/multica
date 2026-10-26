@@ -61,6 +61,7 @@ import {
 } from "@multica/ui/components/ui/tooltip";
 import { useNavigation, useRowLink } from "../../navigation";
 import { ActorAvatar } from "../../common/actor-avatar";
+import { docsLocalePrefix } from "../../common/docs-locale";
 import { ProviderLogo } from "../../runtimes/components/provider-logo";
 import {
   CollectionPageHeader,
@@ -104,7 +105,8 @@ const COLUMN_WIDTHS: Record<AgentColumnKey, number> = {
   runtime: 144,
   lastActive: 120,
   runs: 88,
-  model: 120,
+  // Shown by default; wide enough for common ids like "claude-sonnet-4-5".
+  model: 160,
   created: 104,
 };
 
@@ -244,9 +246,7 @@ export interface AgentsPageProps {
   hasLocalMachine?: boolean;
 }
 
-// ---------------------------------------------------------------------------
 // Page header
-// ---------------------------------------------------------------------------
 
 function PageHeaderBar({
   totalCount,
@@ -255,15 +255,14 @@ function PageHeaderBar({
   totalCount: number;
   onCreate: () => void;
 }) {
-  const { t } = useT("agents");
+  const { t, i18n } = useT("agents");
   return (
     <CollectionPageHeader
       icon={Bot}
       title={t(($) => $.page.title)}
       count={totalCount}
-      description={t(($) => $.page.tagline)}
       learnMore={{
-        href: "https://multica.ai/docs/agents",
+        href: `https://multica.ai/docs${docsLocalePrefix(i18n.language)}/agents`,
         label: t(($) => $.page.learn_more),
       }}
       actions={
@@ -327,9 +326,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   );
 }
 
-// ---------------------------------------------------------------------------
 // Cells
-// ---------------------------------------------------------------------------
 
 function CheckboxCell({
   checked,
@@ -567,9 +564,7 @@ function LastActiveCell({ row }: { row: AgentListRow }) {
   );
 }
 
-// ---------------------------------------------------------------------------
 // Header row + skeleton
-// ---------------------------------------------------------------------------
 
 function AgentListHeader({
   sortField,
@@ -761,10 +756,8 @@ function LoadingSkeleton() {
   );
 }
 
-// ---------------------------------------------------------------------------
 // Batch toolbar — archive (with confirm; archiving cancels active tasks) and
 // Page
-// ---------------------------------------------------------------------------
 
 export function AgentsPage(_props: AgentsPageProps = {}) {
   const { t } = useT("agents");
@@ -796,7 +789,10 @@ export function AgentsPage(_props: AgentsPageProps = {}) {
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(
     new Set(),
   );
-  const [search, setSearch] = useState("");
+  // Search lives in the view store (session-only) so it survives opening an
+  // agent and navigating back to the list.
+  const search = useAgentsViewStore((s) => s.search);
+  const setSearch = useAgentsViewStore((s) => s.setSearch);
 
   const rawScope = useAgentsViewStore((s) => s.scope);
   const scope = AGENT_SCOPES.includes(rawScope) ? rawScope : "mine";
@@ -1148,7 +1144,10 @@ export function AgentsPage(_props: AgentsPageProps = {}) {
                       )}
                       {isColVisible("model") ? (
                         <ListGridCell className="hidden @2xl:flex">
-                          <span className="min-w-0 truncate text-caption text-muted-foreground">
+                          <span
+                            className="min-w-0 truncate text-caption text-muted-foreground"
+                            title={row.agent.model || undefined}
+                          >
                             {row.agent.model || "—"}
                           </span>
                         </ListGridCell>
