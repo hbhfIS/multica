@@ -26,8 +26,22 @@ The parser accepts exactly four `<type>` values plus the `all` sentinel, and the
     (member|agent|squad|issue|all)/([0-9a-fA-F-]+|all)
 
 So the link target is a real entity UUID (or `all`), never a display name. The
-label between the brackets is free text — that is where the human-readable name
-goes.
+label between the brackets must contain visible text. Put the human-readable
+name there. The `@` prefix is optional; issue references commonly omit it:
+
+    [MUL-123](mention://issue/<uuid>)
+
+Only canonical inline links with visible label text count as mentions. Empty
+or invisible labels, reference links, images, autolinks, titles, and
+angle-bracket destinations are not mention triggers. Use the shape above.
+Text removed by HTML sanitization, such as script contents, and inert template
+contents do not make a label visible; neither does an `@` prefix on its own.
+
+Code examples are inert as mentions. This includes inline code, multiline code
+spans, indented code, and backtick or tilde fenced blocks inside lists,
+blockquotes, or `<details>`. A fenced `diff` of agent instructions cannot invoke
+its mention targets. Copy the mention syntax out of code and paste it into
+ordinary prose to trigger it. Prose mentions in blockquotes still count.
 
 One `mention://` form deliberately sits OUTSIDE this parser:
 `[Label](mention://project/<uuid>)`. `project` is absent from the type group
@@ -201,6 +215,14 @@ re-evaluates surviving inputs. These cancelled runs expose
 `cancelled_by_comment_change: true` in task responses. Unstarted runs without
 replies remain in execution history but do not create cancelled comment blocks;
 manual cancellations and runs that already executed remain visible.
+
+Deleting removes only that comment, never its replies. A deleted comment that
+still has replies stays in `comment list` output as a placeholder — `deleted_at`
+set, `content` empty, no attachments — so the replies keep their `parent_id`.
+It carries no input: it never triggers a run, and there is nothing in it to
+answer. It can still be the `--parent` of a reply that continues its thread.
+Against a server that predates this, `comment delete` refuses instead of
+deleting the replies too.
 
 An edit is treated as a fresh action — it re-derives the comment's lineage from
 the editing action. Only the agent author editing its OWN comment re-stamps the

@@ -22,8 +22,8 @@ Inspect first:
 multica issue get <issue-id> --output json
 multica squad get <squad-id> --output json
 multica squad member list <squad-id> --output json
-multica issue comment list <issue-id> --roots-only --summary --output json
-multica issue comment list <issue-id> --thread <thread-id> --tail 30 --output json
+multica issue comment list <issue-id> --roots-only --summary --compact --output json
+multica issue comment list <issue-id> --thread <thread-id> --tail 30 --compact --output json
 ```
 
 The two comment reads are a sequence: scan the roots first, then open the
@@ -89,7 +89,7 @@ Issue/comment commands often needed with squads:
 ```bash
 multica issue get <issue-id> --output json
 multica issue update <issue-id> --help
-multica issue comment list <issue-id> --roots-only --summary --output json
+multica issue comment list <issue-id> --roots-only --summary --compact --output json
 multica issue comment add <issue-id> --help
 ```
 
@@ -176,6 +176,8 @@ Current behavior:
   and keep it there while members work; the leader wraps the parent
   up (`done`, or reassigned to a named reviewer) only when a later re-trigger
   confirms the overall goal is met.
+  When the run carries a `[Project workflow]` block, the parent stays at its
+  current step instead and the leader runs that block's Step done command.
   Completing a leader task (including the first dispatch) does not itself
   change issue status;
 - that status authority is granted only when the issue's `assignee_type` /
@@ -184,8 +186,7 @@ Current behavior:
   — on those paths the protocol instead carries an explicit "do not change this
   issue's status".
 
-The status names above are category rules: a custom status inherits its
-category's behavior in full.
+The status names above are fixed built-in keys, not categories.
 
 Assignment validation rejects a missing type/id pair, non-existent squad,
 archived squad, archived leader, and private leader when the actor cannot access
@@ -254,7 +255,8 @@ These actions can trigger agent work or mutate durable state:
 - `role` is roster context, not automatic scheduling.
 - Backlog assignment does not immediately start work.
 - First leader dispatch is not parent completion — parent stays `in_progress`
-  until the leader later confirms the overall goal and wraps it up.
+  until the leader later confirms the overall goal and wraps it up
+  (under a `[Project workflow]` block: stays at its step until Step done).
 - The server does not auto-flip parent status when child issues finish; it only
   wakes the leader with an explicit ask (including how to wrap up: `done`, or
   reassign to a named reviewer).

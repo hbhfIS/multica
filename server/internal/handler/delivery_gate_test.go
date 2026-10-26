@@ -98,8 +98,8 @@ func linkPullRequest(t *testing.T, issueID string, state string, closeIntent boo
 	}
 
 	if _, err := testPool.Exec(ctx, `
-		INSERT INTO issue_pull_request (issue_id, pull_request_id, close_intent, reference_only)
-		VALUES ($1, $2, $3, false)`, issueID, prID, closeIntent,
+		INSERT INTO issue_pull_request (issue_id, pull_request_id, close_intent)
+		VALUES ($1, $2, $3)`, issueID, prID, closeIntent,
 	); err != nil {
 		t.Fatalf("insert issue_pull_request: %v", err)
 	}
@@ -434,4 +434,33 @@ func TestDeliveryGate_BatchUpdateSkipsRejectedIssueButProcessesRest(t *testing.T
 	if ungatedStatus != "done" {
 		t.Fatalf("expected ungated issue to still be closed by the same batch, got %q", ungatedStatus)
 	}
+}
+
+// countSystemCommentsOn and systemCommentOn moved here from
+// issue_child_done_test.go, which upstream rewrote without them.
+func countSystemCommentsOn(t *testing.T, issueID string) int {
+	t.Helper()
+	var n int
+	if err := testPool.QueryRow(context.Background(),
+		`SELECT count(*) FROM comment WHERE issue_id = $1 AND author_type = 'system'`,
+		issueID,
+	).Scan(&n); err != nil {
+		t.Fatalf("count system comments: %v", err)
+	}
+	return n
+}
+
+func systemCommentOn(t *testing.T, issueID string) (content, authorIDStr string, parentNull bool, typeStr string) {
+	t.Helper()
+	row := testPool.QueryRow(context.Background(),
+		`SELECT content, author_id::text, parent_id IS NULL, type
+		   FROM comment
+		   WHERE issue_id = $1 AND author_type = 'system'
+		   ORDER BY created_at DESC
+		   LIMIT 1`,
+		issueID)
+	if err := row.Scan(&content, &authorIDStr, &parentNull, &typeStr); err != nil {
+		t.Fatalf("read system comment: %v", err)
+	}
+	return
 }
