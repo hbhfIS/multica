@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Plus, ChevronRight } from "lucide-react";
+import { ChevronRight, FileText, Plus } from "@multica/ui/icons";
 import type { Doc } from "@multica/core/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
@@ -12,9 +12,11 @@ import { Button } from "@multica/ui/components/ui/button";
 import { Skeleton } from "@multica/ui/components/ui/skeleton";
 import { useT } from "../../i18n";
 import { PageHeader } from "../../layout/page-header";
-import { AppLink } from "../../navigation";
+import { AppLink, useNavigation } from "../../navigation";
 
 function DocTreeItem({ doc, paths, depth = 0 }: { doc: Doc; paths: ReturnType<typeof useWorkspacePaths>; depth?: number }) {
+  const { t } = useT("docs");
+  const untitled = t(($) => $.page.title_placeholder);
   return (
     <AppLink
       href={paths.docDetail(doc.id)}
@@ -23,7 +25,7 @@ function DocTreeItem({ doc, paths, depth = 0 }: { doc: Doc; paths: ReturnType<ty
     >
       <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
       <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-      <span className="flex-1 truncate">{doc.title || "Untitled"}</span>
+      <span className="flex-1 truncate">{doc.title || untitled}</span>
     </AppLink>
   );
 }
@@ -73,6 +75,7 @@ export function DocsPage() {
   const wsId = useWorkspaceId();
   const paths = useWorkspacePaths();
   const qc = useQueryClient();
+  const navigation = useNavigation();
   const [creating, setCreating] = useState(false);
 
   const { data: docs = [], isLoading } = useQuery(docListOptions(wsId));
@@ -81,8 +84,7 @@ export function DocsPage() {
     mutationFn: () => api.createDoc({ title: "", content: "", position: (docs.length + 1) * 1000 }),
     onSuccess: (doc) => {
       qc.invalidateQueries({ queryKey: ["workspaces", wsId, "docs"] });
-      // Navigate to new doc
-      window.location.href = paths.docDetail(doc.id);
+      navigation.push(paths.docDetail(doc.id));
     },
     onSettled: () => setCreating(false),
   });

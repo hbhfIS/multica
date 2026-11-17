@@ -9,11 +9,13 @@ import { FeedbackModal } from "./feedback";
 import { SetParentIssueModal } from "./set-parent-issue";
 import { MarkDuplicateIssueModal } from "./mark-duplicate-issue";
 import { AddChildIssueModal } from "./add-child-issue";
+import { AddProjectIssueModal } from "./add-project-issue";
 import { RenameIssueModal } from "./rename-issue";
+import { RenameProjectModal } from "./rename-project";
 import { DeleteIssueConfirmModal } from "./delete-issue-confirm";
 import { RunConfirmModal } from "./run-confirm";
 import { WorkflowHandoffModal } from "./workflow-handoff";
-import { IssueLimitUpgradeDialog } from "./issue-limit-upgrade-dialog";
+import { LimitRecoveryDialog } from "./limit-recovery-dialog";
 
 export function ModalRegistry() {
   const modal = useModalStore((s) => s.modal);
@@ -60,6 +62,12 @@ export function ModalRegistry() {
     case "issue-add-child":
       activeModal = <AddChildIssueModal onClose={close} data={data} />;
       break;
+    case "project-add-issue":
+      activeModal = <AddProjectIssueModal onClose={close} data={data} />;
+      break;
+    case "project-rename":
+      activeModal = <RenameProjectModal onClose={close} data={data} />;
+      break;
     case "issue-rename":
       activeModal = <RenameIssueModal onClose={close} data={data} />;
       break;
@@ -77,7 +85,7 @@ export function ModalRegistry() {
   return (
     <>
       {activeModal}
-      <IssueLimitUpgradeDialog />
+      <LimitRecoveryDialog />
     </>
   );
 }

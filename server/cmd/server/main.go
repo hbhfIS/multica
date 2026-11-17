@@ -602,7 +602,7 @@ func main() {
 			channelLeaseRedis = newNamedRedisClient(opts, "channel-lease")
 		}
 	}
-	registerListeners(bus, broadcaster)
+	registerListeners(bus, broadcaster, newPrivateProjectAudience(db.New(pool)))
 
 	analyticsClient := analytics.NewFromEnv()
 	defer analyticsClient.Close()
@@ -615,9 +615,12 @@ func main() {
 	registerSubscriberListeners(bus, pool)
 	registerActivityListeners(bus, queries)
 	registerNotificationListeners(bus, queries)
+	registerChatReplyNotifications(bus, broadcaster, &membershipChecker{queries: queries})
+	registerIssueUnreadListeners(bus, queries)
 
 	metricsConfig := obsmetrics.ConfigFromEnv()
 	var metricsServer *http.Server
+	var inboxReadMetrics *obsmetrics.InboxReadMetrics
 	var httpMetrics *obsmetrics.HTTPMetrics
 	var businessMetrics *obsmetrics.BusinessMetrics
 	var channelMediaMetrics *obsmetrics.ChannelMediaReconcilerMetrics
@@ -633,6 +636,7 @@ func main() {
 			Version:     version,
 			Commit:      commit,
 		})
+		inboxReadMetrics = metricsRegistry.InboxRead
 		httpMetrics = metricsRegistry.HTTP
 		businessMetrics = metricsRegistry.Business
 		channelMediaMetrics = metricsRegistry.ChannelMedia
@@ -680,6 +684,7 @@ func main() {
 	}
 
 	r, h := NewRouterWithOptions(pool, hub, bus, analyticsClient, storeRedis, RouterOptions{
+		InboxReadMetrics:    inboxReadMetrics,
 		HTTPMetrics:         httpMetrics,
 		BusinessMetrics:     businessMetrics,
 		ChannelLeaseMetrics: channelLeaseMetrics,
@@ -764,6 +769,10 @@ func main() {
 	// Source-context cleanup is object-store work, so it gets its own goroutine
 	// instead of a slot in the runtime sweep tick.
 	go runSourceContextSweeper(sweepCtx, taskSvc)
+	go runEnvironmentLogSweeper(sweepCtx, queries)
+	if h.ConnectedApps != nil {
+		go h.ConnectedApps.RunSweeper(sweepCtx)
+	}
 	go heartbeatScheduler.Run(sweepCtx)
 	go runAutopilotFailureMonitor(autopilotCtx, queries, bus, envFailureMonitorConfig())
 	if autopilotSvc.QuotaEnabled() {
@@ -781,6 +790,12 @@ func main() {
 	}
 	if h.TelegramOutbound != nil {
 		h.TelegramOutbound.Start(sweepCtx)
+	}
+	if h.WeixinOutbound != nil {
+		h.WeixinOutbound.Start(sweepCtx)
+	}
+	if h.WeixinInstall != nil {
+		go h.WeixinInstall.RunCleanup(sweepCtx)
 	}
 	// GitHub PR-card API snapshot pipeline (MUL-5265): worker pool + TTL sweeper.
 	// No-op when unconfigured (no App private key).
@@ -807,6 +822,14 @@ func main() {
 	if h.ChannelMediaReconciler != nil {
 		h.ChannelMediaReconciler.Metrics = channelMediaMetrics
 		go h.ChannelMediaReconciler.Run(sweepCtx)
+	}
+
+	// WeCom scan-code install worker: drives QR generate + poll out of band, so
+	// no HTTP request waits on WeCom. Started even when the scan flow is
+	// unconfigured, so any session already in flight reaches a terminal state
+	// instead of spinning forever in the admin's dialog.
+	if h.WecomInstallWorker != nil {
+		go h.WecomInstallWorker.Run(sweepCtx)
 	}
 
 	// MUL-2957: DB-backed execution scheduler. The scheduler turns the
@@ -841,6 +864,9 @@ func main() {
 	}
 	if err := schedulerMgr.Register(scheduler.ChildEventSweepJob(&service.IssueWakeupService{Tasks: taskSvc})); err != nil {
 		slog.Error("scheduler: register child-done sweep", "error", err)
+	}
+	if err := schedulerMgr.Register(scheduler.ChatWakeupJob(&service.ChatWakeupService{Tasks: taskSvc})); err != nil {
+		slog.Error("scheduler: register chat wakeups", "error", err)
 	}
 	if err := schedulerMgr.Register(scheduler.AutopilotScheduleDispatchJob(pool, queries, autopilotSvc)); err != nil {
 		slog.Warn("scheduler: failed to register autopilot_schedule_dispatch job", "error", err)
@@ -934,6 +960,9 @@ func main() {
 			}
 		},
 		JoinTelegram: func() {
+			if h.WeixinOutbound != nil && !h.WeixinOutbound.WaitWithTimeout(5*time.Second) {
+				slog.Warn("weixin outbound workers did not exit within shutdown timeout")
+			}
 			if h.TelegramOutbound != nil && !h.TelegramOutbound.WaitWithTimeout(5*time.Second) {
 				slog.Warn("telegram outbound workers did not exit within shutdown timeout")
 			}

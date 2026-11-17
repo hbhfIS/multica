@@ -1,17 +1,17 @@
 "use client";
 
 import { useCallback, useRef, useState, useEffect } from "react";
-import { ArrowLeft, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useWorkspacePaths } from "@multica/core/paths";
 import { docDetailOptions } from "@multica/core/workspace/queries";
 import { api } from "@multica/core/api";
-import { Button } from "@multica/ui/components/ui/button";
+import { ArrowLeft, Trash2 } from "@multica/ui/icons";
+import { IconButton } from "@multica/ui/components/common/icon-button";
 import { Skeleton } from "@multica/ui/components/ui/skeleton";
 import { useT } from "../../i18n";
 import { ContentEditor, TitleEditor, type ContentEditorRef, type TitleEditorRef } from "../../editor";
-import { AppLink } from "../../navigation";
+import { AppLink, useNavigation } from "../../navigation";
 
 const AUTOSAVE_DEBOUNCE_MS = 1500;
 
@@ -20,6 +20,7 @@ export function DocDetailPage({ docId }: { docId: string }) {
   const wsId = useWorkspaceId();
   const paths = useWorkspacePaths();
   const qc = useQueryClient();
+  const navigation = useNavigation();
   const contentEditorRef = useRef<ContentEditorRef>(null);
   const titleEditorRef = useRef<TitleEditorRef>(null);
 
@@ -41,7 +42,7 @@ export function DocDetailPage({ docId }: { docId: string }) {
     mutationFn: () => api.archiveDoc(docId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workspaces", wsId, "docs"] });
-      window.location.href = paths.docs();
+      navigation.push(paths.docs());
     },
   });
 
@@ -83,20 +84,20 @@ export function DocDetailPage({ docId }: { docId: string }) {
       <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
         <AppLink
           href={paths.docs()}
+          aria-label={t(($) => $.page.back)}
           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <ArrowLeft className="h-4 w-4" />
         </AppLink>
         <div className="flex-1" />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-destructive hover:text-destructive"
+        <IconButton
+          label={t(($) => $.page.archive)}
+          className="text-destructive hover:text-destructive"
           onClick={() => archiveMutation.mutate()}
           disabled={archiveMutation.isPending}
         >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+          <Trash2 />
+        </IconButton>
       </div>
 
       {/* Editor area */}
