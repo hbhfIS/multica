@@ -1,0 +1,12 @@
+{
+  "page": {
+    "title": "文件",
+    "new_doc": "新增文件",
+    "empty": "尚無文件。建立你的第一份文件。",
+    "not_found": "找不到文件。",
+    "title_placeholder": "未命名",
+    "body_placeholder": "寫點什麼…",
+    "back": "返回文件",
+    "archive": "刪除文件"
+  }
+}

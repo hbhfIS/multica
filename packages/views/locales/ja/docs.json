@@ -5,6 +5,8 @@
     "empty": "ドキュメントはまだありません。最初のドキュメントを作成しましょう。",
     "not_found": "ドキュメントが見つかりません。",
     "title_placeholder": "無題",
-    "body_placeholder": "何か書いてください…"
+    "body_placeholder": "何か書いてください…",
+    "back": "ドキュメントに戻る",
+    "archive": "ドキュメントを削除"
   }
 }

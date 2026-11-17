@@ -5,6 +5,8 @@
     "empty": "아직 문서가 없습니다. 첫 문서를 만들어 보세요.",
     "not_found": "문서를 찾을 수 없습니다.",
     "title_placeholder": "제목 없음",
-    "body_placeholder": "내용을 입력하세요…"
+    "body_placeholder": "내용을 입력하세요…",
+    "back": "문서로 돌아가기",
+    "archive": "문서 삭제"
   }
 }

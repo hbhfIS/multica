@@ -78,6 +78,22 @@ When the issue's assignee is an agent, members' comments already trigger it. A "
 - If the same agent already has a run waiting to start on the issue, the wakeup joins that run instead of starting another one.
 - While a wakeup is waiting, the issue header shows what the issue is waiting for, such as "Ops helper: Waiting for a reply". Click it to jump to the Wakeups section.
 
+## Workflow steps on continued work [#workflow-steps]
+
+A run has a workflow step binding as well as an execution ID. A new execution ID or a reused agent conversation does not decide which step it can advance.
+
+| How work starts | Step binding |
+|---|---|
+| A wakeup created by an agent during a run | Inherits the source run's step, when it has one. |
+| A wakeup created by a member that starts a new run | The issue's current status when the wakeup fires. |
+| An automatic retry | Keeps the parent run's binding. |
+| A member explicitly reruns the work | The issue's current status when the new run is queued. |
+| A wakeup joins an existing run waiting to start | Keeps that waiting run's binding. |
+
+Named workflows and **Default** workflows with handoffs protect against stale status changes. If another actor moves the issue away from a run's bound step, that run cannot advance the issue. Its brief shows both steps and asks it to leave the current status unchanged and comment if attention is needed. A rejected status change returns `409 workflow_step_moved`; retrying it does not refresh the binding.
+
+To continue from the new state, a member should review the external move and explicitly rerun the work from the execution log. The old run is not automatically rebound.
+
 ## View and manage wakeups [#manage]
 
 The Wakeups section of the issue sidebar lists the issue's rules: the condition, who is woken, when it fires next, and how long is left. Click a rule for its details, including its source, its deadline, its instruction, and its **trigger history** (the latest runs, whether each posted a comment, and what each silent check found).
@@ -114,7 +130,7 @@ The parent's assignee is already woken by this rule, so do not add a "Sub-issues
 
 On a single issue, any workspace member can turn this rule off or rewrite its instruction (up to 4,000 bytes); agents cannot change it. Once changed, that issue no longer follows the workspace default.
 
-Workspace owners and admins set the defaults in **Settings → Wakeups**: whether the rule is on by default (it is) and the default instruction. With no default instruction, the built-in one is used. The page also shows how many open issues use their own setting.
+Workspace owners and admins set the defaults on the card at the top of the **Issue wakeups** tab: whether the rule is on by default (it is) and the default instruction. With no default instruction, the built-in one is used. The card also shows how many open issues use their own setting; click it to list the system rules.
 
 ## Let agents schedule their own wakeups [#cli]
 
@@ -140,7 +156,7 @@ multica issue wakeup create OPS-56 --until-status in_review --instruction "Check
 
 - **Time**: `--kind at` with `--after 10m` or `--at <RFC3339 time>`; `--kind every --every 1h` for a fixed interval of at least 1 minute; `--kind cron --cron "<5-field expression>"` with `--timezone` (UTC by default).
 - **Events**: list event names after `--event`, separated by commas. `multica issue wakeup events` lists every event and filter. `--mode continuous` makes the rule repeat.
-- **Conditions**: `--until-status`, `--until-assignee`, `--until-label`, `--until-property`, `--until-children-done [--stage N]`, `--until-pr checks|merged|conflicts`, and `--until-issue <issue> --until-issue-state done|ended|in_review`. Use one `--until-*` per wakeup, and not together with `--event`.
+- **Conditions**: `--until-status`, `--until-assignee`, `--until-label`, `--until-property`, `--until-children-done [--stage N]`, `--until-pr checks|merged|conflicts`, and `--until-issue <issue> --until-issue-state done|ended|in_review|blocked`. Use one `--until-*` per wakeup, and not together with `--event`.
 - **Endings**: the CLI does not add a deadline for you. Use `--expires-in 72h` or `--expires-at <RFC3339 time>`; `--on-timeout wake` makes an event rule wake the agent once more at the deadline. `--max-fires N` (1–1000) caps how many runs a repeating rule starts.
 - **Where results go**: `--parent <comment-id>` keeps the woken run's reply in the original thread.
 

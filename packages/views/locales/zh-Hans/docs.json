@@ -5,6 +5,8 @@
     "empty": "还没有文档。创建你的第一个文档。",
     "not_found": "未找到文档。",
     "title_placeholder": "无标题",
-    "body_placeholder": "写点什么…"
+    "body_placeholder": "写点什么…",
+    "back": "返回文档",
+    "archive": "删除文档"
   }
 }

@@ -1,0 +1,12 @@
+{
+  "page": {
+    "title": "Documentos",
+    "new_doc": "Nuevo documento",
+    "empty": "Aún no hay documentos. Crea tu primer documento.",
+    "not_found": "Documento no encontrado.",
+    "title_placeholder": "Sin título",
+    "body_placeholder": "Escribe algo…",
+    "back": "Volver a documentos",
+    "archive": "Eliminar documento"
+  }
+}

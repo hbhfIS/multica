@@ -1,0 +1,12 @@
+{
+  "page": {
+    "title": "Docs",
+    "new_doc": "Nouveau doc",
+    "empty": "Aucun doc pour l'instant. Créez votre premier doc.",
+    "not_found": "Doc introuvable.",
+    "title_placeholder": "Sans titre",
+    "body_placeholder": "Écrivez quelque chose…",
+    "back": "Retour aux docs",
+    "archive": "Supprimer le doc"
+  }
+}
